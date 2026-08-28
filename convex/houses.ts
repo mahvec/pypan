@@ -35,6 +35,20 @@ export const update = mutation({
   },
 });
 
+export const remove = mutation({
+  args: { sessionToken: v.string(), houseId: v.id("houses") },
+  handler: async (ctx, { sessionToken, houseId }) => {
+    await requireConsoleSession(ctx, sessionToken);
+    const house = await ctx.db.get(houseId);
+    if (!house) return { deletedParticipants: 0 };
+    const participants = await ctx.db.query("participants").withIndex("by_house", (q) => q.eq("houseId", houseId)).collect();
+    for (const participant of participants) await ctx.db.delete(participant._id);
+    await ctx.db.delete(houseId);
+    await ctx.db.insert("auditLog", { action: "delete", detail: `Deleted ${house.name} and ${participants.length} participants`, createdAt: Date.now() });
+    return { deletedParticipants: participants.length };
+  },
+});
+
 export const setLeadership = mutation({
   args: { sessionToken: v.string(), houseId: v.id("houses"), captainId: v.id("participants"), viceCaptainId: v.id("participants") },
   handler: async (ctx, { sessionToken, houseId, captainId, viceCaptainId }) => {
