@@ -4,4 +4,3 @@ dist
 .env.local
 .env.*.local
 !*.example
-convex/_generated
